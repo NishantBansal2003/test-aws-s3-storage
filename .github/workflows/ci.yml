@@ -24,13 +24,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install AWS CLI
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-          aws --version
-
       - name: Set environment variables for LocalStack
         run: |
           echo "AWS_ACCESS_KEY_ID=test" >> $GITHUB_ENV
@@ -55,7 +48,7 @@ jobs:
 
       - name: Check that corpus directory exists locally
         run: |
-          if [ ! -d "./corpus" ]; then
+          if [ ! -d "~/corpus" ]; then
             echo "❌ Local 'corpus' directory not found."
             exit 1
           else
