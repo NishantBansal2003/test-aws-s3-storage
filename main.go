@@ -63,9 +63,7 @@ func createS3Client(ctx context.Context) (*s3.Client, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.UsePathStyle = true // Needed for non-AWS providers
-	})
+	client := s3.NewFromConfig(cfg)
 	return client, nil
 }
 
