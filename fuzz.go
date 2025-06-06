@@ -148,7 +148,7 @@ func executeFuzzTarget(ctx context.Context, logger *slog.Logger, pkg string,
 	// include both stdout and stderr content.
 	streamFuzzOutput(logger.With("target", target).With("package", pkg),
 		stdout, maybeFailingCorpusPath, cfg, pkg, target,
-		fuzzTargetFailingChan)
+		fuzzTargetFailingChan, ctx)
 
 	// Wait for the 'go test' command to finish execution.
 	err = cmd.Wait()
@@ -196,12 +196,12 @@ func executeFuzzTarget(ctx context.Context, logger *slog.Logger, pkg string,
 // fuzzTargetFailingChan channel.
 func streamFuzzOutput(logger *slog.Logger, r io.Reader,
 	corpusPath string, cfg *Config, pkg string, target string,
-	failureChan chan bool) {
+	failureChan chan bool, ctx context.Context) {
 
 	// Create a fuzzOutputProcessor to handle parsing and logging of fuzz
 	// output.
 	processor := NewFuzzOutputProcessor(logger, cfg, corpusPath, pkg,
-		target)
+		target, ctx)
 
 	// Process the fuzzing output stream. This will log all output, detect
 	// failures, and write failure details to disk if encountered.

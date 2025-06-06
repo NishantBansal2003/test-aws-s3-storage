@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 
@@ -125,7 +126,8 @@ func TestReadInputData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			processor := NewFuzzOutputProcessor(&slog.Logger{},
-				&Config{}, tt.corpusPath, "", "")
+				&Config{}, tt.corpusPath, "", "",
+				context.Background())
 
 			actualData := processor.readFailingInput(tt.fuzzTarget,
 				tt.testcaseID)

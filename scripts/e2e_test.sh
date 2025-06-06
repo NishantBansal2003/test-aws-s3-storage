@@ -134,6 +134,7 @@ readonly REQUIRED_PATTERNS=(
   'workerID=1'
   'workerID=2'
   'workerID=3'
+  'No permission to create a GitHub issue; logging instead.'
   'msg="Known crash detected. Please fix the failing testcase." target=FuzzParseComplex package=parser log_file=parser_FuzzParseComplex_342a5c470d17be27_failure.md'
   'msg="Known crash detected. Please fix the failing testcase." target=FuzzUnSafeReverseString package=stringutils log_file=stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.md'
   'Successfully zipped and uploaded corpus'
