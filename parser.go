@@ -226,7 +226,7 @@ func (fp *fuzzOutputProcessor) isCrashDuplicate(errorData string) (bool,
 
 	// Construct the log file name using the package, target name and crash
 	// hash.
-	logFileName := fmt.Sprintf("%s_%s_%s_failure.log", fp.packageName,
+	logFileName := fmt.Sprintf("%s_%s_%s_failure.md", fp.packageName,
 		fp.targetName, crashHash)
 
 	// Check if a log file with the same signature already exists in the
@@ -264,20 +264,20 @@ func (fp *fuzzOutputProcessor) writeCrashLog(logFileName, errorLog,
 
 	fp.logger.Info("Failure log initialized", "path", logPath)
 
+	errorLog = "## Error logs\n~~~sh\n" + errorLog + "~~~\n"
+
 	// Write the error logs to the failure log file.
-	if errorLog != "" {
-		_, err = fp.logFile.WriteString(errorLog)
-		if err != nil {
-			return fmt.Errorf("failed to write log line: %w", err)
-		}
+	_, err = fp.logFile.WriteString(errorLog)
+	if err != nil {
+		return fmt.Errorf("failed to write log line: %w", err)
 	}
 
 	// If we can't retrieve error data, the error likely originates from a
 	// seed corpus entry in the form:
 	//   "failure while testing seed corpus entry: FuzzFoo/771e938e4458e983"
 	if errorInput == "" {
-		errorInput = fmt.Sprintf("\n\n=== Failing Testcase " +
-			"===\nFailure while testing seed corpus entry. " +
+		errorInput = fmt.Sprintf("\n## Failing testcase\n" +
+			"Failure while testing seed corpus entry. " +
 			"Please ensure your latest changes do not introduce " +
 			"any bugs.")
 	}
@@ -287,6 +287,13 @@ func (fp *fuzzOutputProcessor) writeCrashLog(logFileName, errorLog,
 	if err != nil {
 		return fmt.Errorf("Failed to write error data: %w", err)
 	}
+
+	// Write the water mark at the end of log file
+	_, err = fp.logFile.WriteString(waterMark + "\n")
+	if err != nil {
+		return fmt.Errorf("Failed to water mark: %w", err)
+	}
+
 	return nil
 }
 
@@ -329,12 +336,12 @@ func (fp *fuzzOutputProcessor) readFailingInput(target, id string) string {
 	if err != nil {
 		// If reading fails, return a placeholder string indicating the
 		// failure.
-		return fmt.Sprintf("\n<< failed to read %s: %v >>\n",
-			failingInputPath, err)
+		return fmt.Sprintf("\n## Failing testcase (%s)\nFailed to "+
+			"read %s: %v", target, failingInputPath, err)
 	}
 
 	// If reading succeeds, format the content with a header indicating it's
 	// a failing test case.
-	return fmt.Sprintf("\n\n=== Failing testcase (%s) ===\n%s",
-		failingInputPath, data)
+	return fmt.Sprintf("\n## Failing testcase (%s)\n~~~sh\n%s~~~", target,
+		data)
 }

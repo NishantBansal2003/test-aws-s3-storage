@@ -106,10 +106,10 @@ func TestReadInputData(t *testing.T) {
 			fuzzTarget: "FuzzFoo",
 			testcaseID: "771e938e4458e888",
 			corpusPath: "testdata",
-			expectedData: "\n<< failed to read FuzzFoo/7" +
-				"71e938e4458e888: open testdata/FuzzFoo/" +
-				"771e938e4458e888: no such file or directory" +
-				" >>\n",
+			expectedData: "\n## Failing testcase (FuzzFoo)\n" +
+				"Failed to read FuzzFoo/771e938e4458e888: " +
+				"open testdata/FuzzFoo/771e938e4458e888: no " +
+				"such file or directory",
 		},
 		{
 			name: "existing input file returns correct " +
@@ -117,9 +117,8 @@ func TestReadInputData(t *testing.T) {
 			fuzzTarget: "FuzzFoo",
 			testcaseID: "771e938e4458e983",
 			corpusPath: "testdata",
-			expectedData: "\n\n=== Failing testcase (FuzzFoo/" +
-				"771e938e4458e983) ===\ngo test fuzz v1\n" +
-				"string(\"0\")\n",
+			expectedData: "\n## Failing testcase (FuzzFoo)\n~~~sh" +
+				"\ngo test fuzz v1\nstring(\"0\")\n~~~",
 		},
 	}
 

@@ -134,8 +134,8 @@ readonly REQUIRED_PATTERNS=(
   'workerID=1'
   'workerID=2'
   'workerID=3'
-  'msg="Known crash detected. Please fix the failing testcase." target=FuzzParseComplex package=parser log_file=parser_FuzzParseComplex_342a5c470d17be27_failure.log'
-  'msg="Known crash detected. Please fix the failing testcase." target=FuzzUnSafeReverseString package=stringutils log_file=stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.log'
+  'msg="Known crash detected. Please fix the failing testcase." target=FuzzParseComplex package=parser log_file=parser_FuzzParseComplex_342a5c470d17be27_failure.md'
+  'msg="Known crash detected. Please fix the failing testcase." target=FuzzUnSafeReverseString package=stringutils log_file=stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.md'
   'Successfully zipped and uploaded corpus'
 )
 
@@ -190,8 +190,8 @@ done
 # Verify crash reports
 echo "📄 Checking crash reports..."
 required_crashes=(
-  "$FUZZ_RESULTS_PATH/parser_FuzzParseComplex_342a5c470d17be27_failure.log"
-  "$FUZZ_RESULTS_PATH/stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.log"
+  "$FUZZ_RESULTS_PATH/parser_FuzzParseComplex_342a5c470d17be27_failure.md"
+  "$FUZZ_RESULTS_PATH/stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.md"
 )
 
 for crash_file in "${required_crashes[@]}"; do
