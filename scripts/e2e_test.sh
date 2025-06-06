@@ -128,15 +128,15 @@ fi
 
 # List of required patterns to check in the log
 readonly REQUIRED_PATTERNS=(
-  "Downloaded object"
-  "Successfully extracted zip archive."
-  "msg="Per-target fuzz timeout calculated" duration=11m15s"
-  "workerID=1"
-  "workerID=2"
-  "workerID=3"
-  "msg="Known crash detected. Please fix the failing testcase." target=FuzzParseComplex package=parser log_file=parser_FuzzParseComplex_342a5c470d17be27_failure.log"
-  "msg="Known crash detected. Please fix the failing testcase." target=FuzzUnSafeReverseString package=stringutils log_file=stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.log"
-  "Successfully zipped and uploaded corpus"
+  'Downloaded object'
+  'Successfully extracted zip archive.'
+  'msg="Per-target fuzz timeout calculated" duration=11m15s'
+  'workerID=1'
+  'workerID=2'
+  'workerID=3'
+  'msg="Known crash detected. Please fix the failing testcase." target=FuzzParseComplex package=parser log_file=parser_FuzzParseComplex_342a5c470d17be27_failure.log'
+  'msg="Known crash detected. Please fix the failing testcase." target=FuzzUnSafeReverseString package=stringutils log_file=stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.log'
+  'Successfully zipped and uploaded corpus'
 )
 
 # Verify that worker logs contain expected entries
