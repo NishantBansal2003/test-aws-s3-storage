@@ -110,7 +110,7 @@ for target in "${FUZZ_TARGETS[@]}"; do
 done
 
 # Execute fuzzing process
-echo "🔍 Starting fuzzing process (timeout: $SYNC_FREQUENCY)..."
+echo "🔍 Starting fuzzing process (timeout: $MAKE_TIMEOUT)..."
 mkdir -p "$FUZZ_RESULTS_PATH"
 MAKE_LOG="$FUZZ_RESULTS_PATH/make_run.log"
 
@@ -190,7 +190,7 @@ done
 # Verify crash reports
 echo "📄 Checking crash reports..."
 required_crashes=(
-  "$FUZZ_RESULTS_PATH/parser_FuzzParseComplex__Vx2ncgXFOpdUg85_failure.log"
+  "$FUZZ_RESULTS_PATH/parser_FuzzParseComplex_342a5c470d17be27_failure.log"
   "$FUZZ_RESULTS_PATH/stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.log"
 )
 
