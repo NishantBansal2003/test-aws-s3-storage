@@ -1,13 +1,86 @@
-name: Run Storage tests
+name: CI
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch: {}
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  localstack:
+  format:
+    name: Check Format and Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        id: setup
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.9"
+
+      - name: Check gofmt
+        run: |
+          fmt_result=$(gofmt -l .)
+          if [ -n "$fmt_result" ]; then
+            echo "The following files need to be formatted:"
+            echo "$fmt_result"
+            exit 1
+          fi
+
+      - name: Check golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.1
+
+  build:
+    name: Build go-continuous-fuzz project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        id: setup
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.9"
+
+      - name: Set up Go environment variables
+        run: |
+          echo "export PATH=\$PATH:$(go env GOPATH)/bin" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build the project
+        run: make build
+
+  unit-test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        id: setup
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.9"
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: make unit-test
+
+  e2e-test:
+    name: Run E2E Tests
     runs-on: ubuntu-latest
     services:
       localstack:
@@ -21,8 +94,8 @@ jobs:
           - 4566:4566
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Set environment variables for LocalStack
         run: |
@@ -35,22 +108,33 @@ jobs:
         run: |
           aws --endpoint-url=http://localhost:4566 s3 mb s3://test-fuzz-bucket
 
-      - name: Run Go program
+      - name: Download seed_corpus into ~/corpus
         run: |
-          go run main.go
+          mkdir -p "$HOME/corpus"
+          curl -L \
+            https://codeload.github.com/NishantBansal2003/go-fuzzing-example/tar.gz/fuzz-example \
+            | tar -xz \
+              --strip-components=2 \
+              -C "$HOME/corpus" \
+              go-fuzzing-example-fuzz-example/seed_corpus
 
-      - name: Check that corpus.zip is present in S3
+      - name: Zip the corpus directory into corpus.zip
         run: |
-          aws --endpoint-url=http://localhost:4566 s3 ls s3://test-fuzz-bucket/corpus.zip || {
-            echo "❌ corpus.zip not found in S3 bucket."
-            exit 1
-          }
+          cd "$HOME"
+          zip -r corpus.zip corpus
 
-      - name: Check that corpus directory exists locally
+      - name: Upload corpus.zip to LocalStack S3
         run: |
-          if [ ! -d "~/corpus" ]; then
-            echo "❌ Local 'corpus' directory not found."
-            exit 1
-          else
-            echo "✅ Local 'corpus' directory exists."
-          fi
+          aws --endpoint-url=http://localhost:4566 s3 cp "$HOME/corpus.zip" s3://test-fuzz-bucket/corpus.zip
+
+      - name: Set up Go
+        id: setup
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.9"
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run E2E tests
+        run: make e2e-test
