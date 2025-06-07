@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -44,6 +46,8 @@ var (
 // fuzzOutputProcessor handles parsing and logging of fuzzing output streams,
 // detecting failures, and capturing/logging failing input data.
 type fuzzOutputProcessor struct {
+	ctx context.Context
+
 	// Logger for informational and error messages.
 	logger *slog.Logger
 
@@ -66,9 +70,10 @@ type fuzzOutputProcessor struct {
 // NewFuzzOutputProcessor constructs a fuzzOutputProcessor for the given logger,
 // config, corpus directory, and fuzz target name.
 func NewFuzzOutputProcessor(logger *slog.Logger, cfg *Config, corpusDir, pkg,
-	targetName string) *fuzzOutputProcessor {
+	targetName string, ctx context.Context) *fuzzOutputProcessor {
 
 	return &fuzzOutputProcessor{
+		ctx:         ctx,
 		logger:      logger,
 		cfg:         cfg,
 		corpusDir:   corpusDir,
@@ -158,6 +163,55 @@ func (fp *fuzzOutputProcessor) processFailureLines(scanner *bufio.Scanner) {
 		errorInput = fp.readFailingInput(target, id)
 	}
 
+	// Parse the URL to extract the token, owner, and repo
+	parsedURL, err := url.Parse(fp.cfg.ProjectSrcPath)
+	if err != nil {
+		fp.logger.Error("Invalid repository URL", "error", err)
+		return
+	}
+
+	// Extract the token to check if we have permission to open the GitHub
+	// issue.
+	token := extractToken(parsedURL)
+	if token != "" {
+		// A token is present, which means we have permission to open
+		// the issue on GitHub.
+
+		// Create GitHub client
+		client := createGitHubClient(fp.ctx, token)
+
+		owner, repo, err := extractOwnerRepo(parsedURL)
+		if err != nil {
+			fp.logger.Error("Error extracting owner and repo",
+				"error", err)
+			return
+		}
+
+		// Compute a short signature hash for the crash to help with
+		// deduplication.
+		crashHash := ComputeSHA256Short(fp.packageName, fp.targetName,
+			errorData)
+
+		title := fmt.Sprintf("[fuzz/%s] Fuzzing crash in %s", crashHash,
+			fp.targetName)
+		body := formatCrashReport(errorLog, errorInput)
+
+		if !isIssueExist(fp.ctx, client, owner, repo, title,
+			fp.logger) {
+
+			if err := createIssue(fp.ctx, client, owner, repo,
+				title, body, fp.logger); err != nil {
+				fp.logger.Error("Failed to create GitHub issue",
+					"error", err)
+			}
+		}
+
+		return
+	}
+
+	fp.logger.Info("No permission to create a GitHub issue; logging "+
+		"instead.", "logfile_path", fp.cfg.FuzzResultsPath)
+
 	// Ensure the results directory exists.
 	if err := EnsureDirExists(fp.cfg.FuzzResultsPath); err != nil {
 		fp.logger.Error("Failed to create fuzz results directory",
@@ -226,7 +280,7 @@ func (fp *fuzzOutputProcessor) isCrashDuplicate(errorData string) (bool,
 
 	// Construct the log file name using the package, target name and crash
 	// hash.
-	logFileName := fmt.Sprintf("%s_%s_%s_failure.log", fp.packageName,
+	logFileName := fmt.Sprintf("%s_%s_%s_failure.md", fp.packageName,
 		fp.targetName, crashHash)
 
 	// Check if a log file with the same signature already exists in the
@@ -265,29 +319,34 @@ func (fp *fuzzOutputProcessor) writeCrashLog(logFileName, errorLog,
 	fp.logger.Info("Failure log initialized", "path", logPath)
 
 	// Write the error logs to the failure log file.
-	if errorLog != "" {
-		_, err = fp.logFile.WriteString(errorLog)
-		if err != nil {
-			return fmt.Errorf("failed to write log line: %w", err)
-		}
+	_, err = fp.logFile.WriteString(formatCrashReport(errorLog, errorInput))
+	if err != nil {
+		return fmt.Errorf("failed to write logs: %w", err)
 	}
+
+	return nil
+}
+
+// formatCrashReport constructs a markdown-formatted report containing the error
+// logs, the failing test case (or a placeholder message if none is provided),
+// and a watermark. If errorInput is empty, a generic failing-testcase message
+// is used.
+func formatCrashReport(errorLog, errorInput string) string {
+	// Build the "Error logs" section.
+	logSection := fmt.Sprintf("## Error logs\n~~~sh\n%s~~~", errorLog)
 
 	// If we can't retrieve error data, the error likely originates from a
 	// seed corpus entry in the form:
 	//   "failure while testing seed corpus entry: FuzzFoo/771e938e4458e983"
 	if errorInput == "" {
-		errorInput = fmt.Sprintf("\n\n=== Failing Testcase " +
-			"===\nFailure while testing seed corpus entry. " +
+		errorInput = "\n## Failing testcase\n" +
+			"Failure while testing seed corpus entry. " +
 			"Please ensure your latest changes do not introduce " +
-			"any bugs.")
+			"any bugs."
 	}
 
-	// Write the error data to the log file.
-	_, err = fp.logFile.WriteString(errorInput + "\n")
-	if err != nil {
-		return fmt.Errorf("Failed to write error data: %w", err)
-	}
-	return nil
+	// Combine sections with the watermark at the end.
+	return fmt.Sprintf("%s\n%s\n%s\n", logSection, errorInput, waterMark)
 }
 
 // parseFailureLine attempts to extract the fuzz target name and input ID
@@ -329,12 +388,12 @@ func (fp *fuzzOutputProcessor) readFailingInput(target, id string) string {
 	if err != nil {
 		// If reading fails, return a placeholder string indicating the
 		// failure.
-		return fmt.Sprintf("\n<< failed to read %s: %v >>\n",
-			failingInputPath, err)
+		return fmt.Sprintf("\n## Failing testcase (%s)\nFailed to "+
+			"read %s: %v", target, failingInputPath, err)
 	}
 
 	// If reading succeeds, format the content with a header indicating it's
 	// a failing test case.
-	return fmt.Sprintf("\n\n=== Failing testcase (%s) ===\n%s",
-		failingInputPath, data)
+	return fmt.Sprintf("\n## Failing testcase (%s)\n~~~sh\n%s~~~", target,
+		data)
 }

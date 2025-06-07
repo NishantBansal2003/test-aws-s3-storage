@@ -82,6 +82,8 @@ jobs:
   e2e-test:
     name: Run E2E Tests
     runs-on: ubuntu-latest
+    env:
+      PAT: ${{ secrets.PAT }}
     services:
       localstack:
         image: localstack/localstack:latest
