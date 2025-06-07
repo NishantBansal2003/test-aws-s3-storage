@@ -7,7 +7,7 @@ shopt -s nullglob
 # CONFIGURATION
 # =============================================================================
 # Environment variables for fuzzing process configuration
-export PROJECT_SRC_PATH="https://github.com/NishantBansal2003/go-fuzzing-example.git"
+export PROJECT_SRC_PATH="https://oauth2:$PAT@github.com/NishantBansal2003/go-fuzzing-example.git"
 export S3_BUCKET_NAME="test-fuzz-bucket"
 export CORPUS_DIR_PATH="$HOME/corpus"
 export SYNC_FREQUENCY="15m"
@@ -71,9 +71,6 @@ measure_fuzz_coverage() {
   local num_inputs
   num_inputs=$(count_corpus_inputs "$pkg" "$func")
 
-  # Incrementing to account for the seed corpus entry; otherwise, we won't get any coverage bits.
-  ((num_inputs++))
-
   # Run coverage measurement
   coverage_result=$(go test -run="^${func}$" -fuzz="^${func}$" \
     -fuzztime="${num_inputs}x" \
@@ -134,9 +131,8 @@ readonly REQUIRED_PATTERNS=(
   'workerID=1'
   'workerID=2'
   'workerID=3'
-  'No permission to create a GitHub issue; logging instead.'
-  'msg="Known crash detected. Please fix the failing testcase." target=FuzzParseComplex package=parser log_file=parser_FuzzParseComplex_342a5c470d17be27_failure.md'
-  'msg="Known crash detected. Please fix the failing testcase." target=FuzzUnSafeReverseString package=stringutils log_file=stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.md'
+  'msg="Issue already exists" target=FuzzParseComplex package=parser url=https://github.com/NishantBansal2003/go-fuzzing-example/issues/2'
+  'msg="Issue already exists" target=FuzzUnSafeReverseString package=stringutils url=https://github.com/NishantBansal2003/go-fuzzing-example/issues/1'
   'Successfully zipped and uploaded corpus'
 )
 
@@ -184,25 +180,6 @@ for target in "${FUZZ_TARGETS[@]}"; do
 
   if [[ $final_cov -lt $initial_cov ]]; then
     echo "❌ ERROR: $target coverage decreased from $initial_cov to $final_cov"
-    exit 1
-  fi
-done
-
-# Verify crash reports
-echo "📄 Checking crash reports..."
-required_crashes=(
-  "$FUZZ_RESULTS_PATH/parser_FuzzParseComplex_342a5c470d17be27_failure.md"
-  "$FUZZ_RESULTS_PATH/stringutils_FuzzUnSafeReverseString_0345b61f9a8eecc9_failure.md"
-)
-
-for crash_file in "${required_crashes[@]}"; do
-  if [[ ! -f "$crash_file" ]]; then
-    echo "❌ ERROR: Missing crash report: $crash_file"
-    exit 1
-  fi
-
-  if ! grep -q "go test fuzz v1" "$crash_file"; then
-    echo "❌ ERROR: Invalid crash report format in $crash_file"
     exit 1
   fi
 done
