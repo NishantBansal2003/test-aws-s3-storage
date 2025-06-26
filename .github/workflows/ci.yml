@@ -83,7 +83,7 @@ jobs:
     name: Run E2E Tests
     runs-on: ubuntu-latest
     env:
-      PAT: ${{ secrets.PAT }}
+      PAT: ${{ secrets.GITHUB_TOKEN }}
     services:
       localstack:
         image: localstack/localstack:latest
