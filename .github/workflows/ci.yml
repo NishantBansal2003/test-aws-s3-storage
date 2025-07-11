@@ -95,6 +95,8 @@ jobs:
     if: |
       github.event_name == 'push' ||
       contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    env:
+      PAT: ${{ secrets.GITHUB_TOKEN }}
     services:
       localstack:
         image: localstack/localstack:latest
