@@ -3,9 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request_target:
+  pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, labeled]
 
 jobs:
   format:
@@ -14,9 +13,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        uses: actions/checkout@v2
 
       - name: Set up Go
         id: setup
@@ -44,9 +41,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        uses: actions/checkout@v2
 
       - name: Set up Go
         id: setup
@@ -67,15 +62,10 @@ jobs:
   unit-test:
     name: Run Unit Tests
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      contains(github.event.pull_request.labels.*.name, 'safe-to-test')
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        uses: actions/checkout@v2
 
       - name: Set up Go
         id: setup
